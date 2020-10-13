@@ -40,9 +40,50 @@ library(here)
 library(skimr)
 library(janitor)
 library(broom)
+library(vroom)
+library(mosaic)
 library(tidyquant)
 library(infer)
 library(openintro)
 library(tidyquant)
 ```
+
+```{r}
+listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2020-06-28/data/listings.csv.gz")
+
+```
+
+#Exploratory Data Analysis 
+##What does the data set contain? 
+
+```{r}
+glimpse(listings)
+skim(listings)
+```
+
+From our glimpse into the data frame, we see that there are 106 columns with a total of 23,728 rows. However of these 106 columns, skim() shows us that only 39 are of the type "numeric". These include variables such as "bedrooms", "square feet", "latitude" and "longitude". Investigating further, we see that a lot of the columns don't add anything of value in terms of analysis (e.g. id, listing_url, scrape_id) and will therefore be dropped later on. 
+
+However, we also see that some of the columns you'd expect to be numeric (e.g. "price", "cleaning fee") are actually served as strings - we will therefore need to cast these for use in our analysis later on. 
+
+##Categorical variables 
+Checking for factor variables in our dataset, we first dive into the review section of hosts - surely AirBnB must have implemented a review system of 1-10? 
+
+```{r}
+listings %>%
+  select(review_scores_value) %>%
+  filter(review_scores_value != "NA") %>%
+  group_by(review_scores_value) %>%
+  count() %>% 
+  ggplot(., aes(x = review_scores_value, y = n)) + geom_col()
+```
+Manipulating our dataframe to show the range of review scores, we see that AirBnB indeed has a 1-10 rating system, and judging from the scores given it seems that Istanbul has some great hosts! The reason why we don't see any 1 scores could perhaps be that AirBnB removes hosts who receive such a score very quickly. 
+
+Other categorical values seem to be variables such as 
+* maximum_nights (the max period you can rent an AirBnB is 365 days)
+* zipcode (Istanbul has a finite amount of zipcodes)
+* neighbourhood (Istanbul has a finite amount of neighbourhoods)
+
+##Correlation between variables? 
+
+
 
