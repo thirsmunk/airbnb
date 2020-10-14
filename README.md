@@ -1,5 +1,5 @@
-Data Science for Finance 
-Final Group Project
+# Data Science for Finance 
+## Final Group Project
 
 Scraped listings from AirBnB Istanbul to answer research questions by EDA and statistical analysis 
 
