@@ -83,7 +83,24 @@ Other categorical values seem to be variables such as
 * zipcode (Istanbul has a finite amount of zipcodes)
 * neighbourhood (Istanbul has a finite amount of neighbourhoods)
 
-##Correlation between variables? 
+##Correlation between variables 
+Before finding the correlation we need to clean the dataset, please refer to the next chapter to see how we did this. 
+```{r}
+ggpairs(listings)
+```
+#Cleaning the dataset 
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
 
 
 
