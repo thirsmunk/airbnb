@@ -47,6 +47,7 @@ library(infer)
 library(openintro)
 library(tidyquant)
 library(leaflet)
+library(broom)
 
 ```
 
@@ -278,9 +279,16 @@ listings_cleaned <- listings_cleaned %>%
 
 options("scipen"=100, "digits"=4)
 
-ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log10() +labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples") 
+ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples")
 
+ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log10() +labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples") 
 
 ```
 
+```{r}
+model1 <- lm(price_4_nights ~ number_of_reviews + prop_type_simplified + review_scores_rating, data = listings_cleaned)
+
+model2 <- lm(price_4_nights ~ number_of_reviews + room_type + prop_type_simplified + review_scores_rating, data = listings_cleaned)
+
+```
 
