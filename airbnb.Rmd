@@ -288,6 +288,11 @@ ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log
 ```{r}
 model1 <- lm(price_4_nights ~ number_of_reviews + prop_type_simplified + review_scores_rating, data = listings_cleaned)
 
+tidy(model1)
+#According to model1, if the review score rating of an Airbnb location rises by 1, the price of a couple staying at that location for 4 nights would decrease by 10.77.
+
+#According to model1, an increase in the number of boutique hotels by 1 would raise the cost of a 4-night stay for a couple by 452.91. An equivalent increase for serviced apartments would raise the cost by 439.45. Houses are the only type of property which have a negative relationship with price, decreasing the cost by 21.03 for each additional house. All other property types such as apartments, townhouses, condominiums, aparthotels, bed and breakfasts, and lofts, have counts positively correlated with the cost of a 4-night stay for a couple.
+
 model2 <- lm(price_4_nights ~ number_of_reviews + room_type + prop_type_simplified + review_scores_rating, data = listings_cleaned)
 
 ```
