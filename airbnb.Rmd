@@ -47,10 +47,16 @@ library(infer)
 library(openintro)
 library(tidyquant)
 library(leaflet)
+
 ```
 
 ```{r}
 listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2020-06-28/data/listings.csv.gz")
+
+listings <- listings %>%
+  mutate(price = parse_number(price))
+
+typeof(listings$price)
 
 ```
 
@@ -107,6 +113,7 @@ listings_cleaned <- listings_cleaned %>%
   mutate(price = parse_number(price))
 
 typeof(listings_cleaned$price)
+
 ```
 ###Analyzing cleaning_fee 
 Now, let's turn our focus to the cleaning_fee variable 
@@ -118,6 +125,7 @@ listings_cleaned <- listings_cleaned %>%
   mutate(cleaning_fee = parse_number(cleaning_fee))
 
 skim(listings_cleaned$cleaning_fee)
+
 ```
 
 
@@ -135,6 +143,7 @@ listings_cleaned <- listings_cleaned %>%
 #Confirm there's no more missing values
 skim(listings_cleaned$cleaning_fee)
 #Confirmed!
+
 ```
 ###A deeper look into property_type 
 Let's turn our attention to property_type. First we count how many categories make up the variable's frequency 
@@ -146,6 +155,7 @@ property_count <- listings_cleaned %>%
   arrange(desc(n))
 
 property_count
+
 ```
 We see that the top 4 most common property types are:
 
@@ -167,6 +177,7 @@ property_count %>%
   ungroup() %>% #Prime for summarization  
   summarise(sum4 = sum(n)) %>% #Get sum of the top 4 property type
   mutate(proportion4 = sum4/totalproperty_count$n) #Calculate the proportion 
+
 ```
 
 A whole **81.5%** as seen from the data manipulation above. Let's now create a simplified version of the property_type variable with 5 categories: 
@@ -224,6 +235,7 @@ We will now filter the minimum_nights so that only observations <= 4 are include
 ```{r}
 listings_cleaned <- listings_cleaned %>%
   filter(minimum_nights <= 4)
+
 ```
 
 #Mapping 
@@ -246,22 +258,28 @@ leaflet(data = filter(listings_cleaned, minimum_nights <= 4)) %>%
 ```{r}
 listings_cleaned <- listings_cleaned %>%
   mutate(extra_people = parse_number(extra_people))
+
 ```
 
 ```{r}
-
+max(listings_cleaned$price)
 total_cost_1 <- listings_cleaned %>%
   filter(guests_included == 1) %>%
   mutate(cost = (4 * price + 4 * extra_people + cleaning_fee))
 
 total_cost_2 <- listings_cleaned %>%
   filter(guests_included >= 2) %>%
-  mutate(cost = (4 * price + 4 * extra_people + cleaning_fee))
+  mutate(cost = (4 * price + cleaning_fee))
 
 listings_cleaned <- full_join(total_cost_1, total_cost_2, copy = FALSE)
 
 listings_cleaned <- listings_cleaned %>%
   mutate(price_4_nights = cost)
+
+options("scipen"=100, "digits"=4)
+
+ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log10() +labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples") 
+
 
 ```
 
