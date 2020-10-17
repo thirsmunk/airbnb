@@ -260,7 +260,8 @@ total_cost_2 <- listings_cleaned %>%
 
 listings_cleaned <- full_join(total_cost_1, total_cost_2, copy = FALSE)
 
-price_4_nights <- listings_cleaned$cost
+listings_cleaned <- listings_cleaned %>%
+  mutate(price_4_nights = cost)
 
 ```
 
