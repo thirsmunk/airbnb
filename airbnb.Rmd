@@ -241,10 +241,27 @@ leaflet(data = filter(listings_cleaned, minimum_nights <= 4)) %>%
 
 ```
 
+#Regression Analysis
 
+```{r}
+listings_cleaned <- listings_cleaned %>%
+  mutate(extra_people = parse_number(extra_people))
+```
 
+```{r}
 
+total_cost_1 <- listings_cleaned %>%
+  filter(guests_included == 1) %>%
+  mutate(cost = (4 * price + 4 * extra_people + cleaning_fee))
 
+total_cost_2 <- listings_cleaned %>%
+  filter(guests_included >= 2) %>%
+  mutate(cost = (4 * price + 4 * extra_people + cleaning_fee))
 
+listings_cleaned <- full_join(total_cost_1, total_cost_2, copy = FALSE)
+
+price_4_nights <- listings_cleaned$cost
+
+```
 
 
