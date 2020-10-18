@@ -48,6 +48,7 @@ library(openintro)
 library(tidyquant)
 library(leaflet)
 library(broom)
+library(car)
 
 ```
 
@@ -297,3 +298,158 @@ model2 <- lm(price_4_nights ~ number_of_reviews + room_type + prop_type_simplifi
 
 ```
 
+
+#Further variables/question to explore
+ 
+In this part, we will further investigate the relationship between several variables to extend our analysis. First, an overview of the relationship we investigate will be given. Then, the relationship will be investigated, and finally, a written conclusion will be presented.
+
+##Can we use the number of bathrooms, bedrooms, beds and the size of the house to predict the price of a four night stay?
+
+To start, we will investigate whether the number of bathrooms, bedrooms, beds or the size of the house are significant predictors of the price for a four night stay as it was calculated in the previous chapter. 
+```{r}
+mymodela <- lm(price_4_nights ~ bathrooms, data = listings_cleaned)
+msummary(mymodela)
+```
+The t value of 10.9 tells us that the number of bathrooms is a significant predictor of the price for four nights. Our model estimates every bathroom adds about 556.1$ to the price of a four nights stay.
+```{r}
+mymodelb <- lm(price_4_nights ~ bedrooms, data = listings_cleaned)
+msummary(mymodelb)
+```
+The t value of 10.0 tells us that the number of bedrooms is a significant predictor of the price for four nights. Our model estimates every bedroom adds about 371.4$ to the price of a four nights stay.
+```{r}
+mymodelc <- lm(price_4_nights ~ beds, data = listings_cleaned)
+msummary(mymodelc)
+```
+The t value of 12.6 tells us that the number of beds is a significant predictor of the price for four nights. Our model estimates every bed adds about 326.7$ to the price of a four nights stay.
+```{r}
+mymodeld <- lm(price_4_nights ~ accommodates, data = listings_cleaned)
+msummary(mymodeld)
+```
+The t value of 19.79 tells us that the number of beds is a significant predictor of the price for four nights. Our model estimates every person an apartment can accommodate adds about 481.7$ to the price of a four nights stay.
+```{r}
+mymodele <- lm(price_4_nights ~ bathrooms + bedrooms + beds + accommodates, data = listings_cleaned)
+msummary(mymodele)
+```
+When running our model for all the variables at the same time. At first sight, we find that the amount of beds is not a significant predictor anymore and that extra bedrooms actually decrease the price of the four night stay. It is important to note that our multi-collinearity test works best when there is zero correlation between the explanatory variables. No test is needed to see that this is not the case in our example, the amount of people an apartment can accommodate and the number of bedrooms is obviously correlated to the number of beds and so is the amount of bathrooms. It is for this reason that we cannot draw conclusions from the above linear model without making appropriate adaptations. 
+
+##Do superhosts command a pricing premium?
+
+Now, lets investigate whether superhosts command a pricing premium after controlling for other variables. 
+The way we would control for other (confounding) variables is to include them in our regression model and see if the variable we want to investigate is still a significant predictor. The problem is we will never know if we have taken care of all the variables that we need to (which is called residual confounding) but we try our best to get an answer that is as close to correct as possible. 
+
+Lets first look at which variables are avilable in our cleaned dataset:
+```{r}
+glimpse(listings_cleaned)
+skim(listings_cleaned)
+```
+
+We assume that controlling for all other variables that characterise the host will allow us to single out the effect of being a superhost (or not being-). 
+
+First, lets create a new variable so that we can adjust for the number of host verifications:
+```{r}
+listings_cleaned_f <- listings_cleaned %>%
+  mutate(number_of_verifications = length(host_verifications))
+```
+
+Now, we use the following linear model:
+```{r}
+mymodelf <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified + number_of_verifications, data = listings_cleaned_f)
+msummary(mymodelf)
+#NOTE TO TEAM: some of there variables are suspected to be correlated but running ggpairs() offers a result that is very hard to interpret. (car::vif does not seem to work)
+```
+As you can see, we did not take the response time, response rate or neighbourhood of the host into account since these variables are only known for a very limited amount of hosts. 
+We find that the superhosts command a price premium as this is a significant predictor even after controlling for the previously mentionned variables. We observe that in the fact that it has a t value of 2.2 and a Pr(>|t|) of 0.0277. Do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.0529.
+
+##Can the fact that a listing has an exact location be used to predict the price of a four night stay?
+
+Lets investigate whether the fact that a property has or has not listed its exact location is a significant predictor of the price of our four night stay. Using a similar strategy as above, we first looked at the available variables. We suspect we will have to control for the effect of a listing being complete in its information in general so that we will find the effect of specificly having the exact location available.
+In the following code, we create a variable that is 0 is no summary is available and 1 if a summary is available. We do the same thing for space, description, notes, transit, access and interaction.  
+```{r}
+listings_cleaned_g <- listings_cleaned %>%
+mutate(summary_available = ifelse(is.na(summary), 0, 1), 
+       space_available = ifelse(is.na(space), 0, 1),
+       description_available = ifelse(is.na(description), 0, 1),
+       notes_available = ifelse(is.na(notes), 0, 1),
+       transit_available = ifelse(is.na(transit), 0, 1),
+       access_available = ifelse(is.na(access), 0, 1),
+       interaction_available = ifelse(is.na(interaction), 0, 1))
+glimpse(listings_cleaned_g)
+```
+
+After glancing at our new variables, we see that there is a very strong correlation between them but this should not be a problem when we only want to test for the significance of the exact location and use these variables to control for other factors. 
+```{r}
+#NOTE TO TEAM: If the above statement is false, please correct me
+```
+
+```{r}
+mymodelg <- lm(price_4_nights ~ is_location_exact + summary_available + description_available + notes_available + transit_available + access_available + interaction_available, data=listings_cleaned_g)
+msummary(mymodelg)
+```
+
+We conclude that the availabliity of an exact locatyion of the listing is a significant predictor for the price of our 4 night stay since the t value is 4.19. Again, do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.00248.
+
+##Is location a predictor of the price of our four night stay? 
+
+For this question, we will start by grouping the neighbourhoods to divide them into 6 geographical areas: Center (C), North (N), East (E), Far East (FE), West (W), Far West (FW).
+```{r}
+listings_cleaned_g <- listings_cleaned %>%
+  mutate(neighbourhood_simplified = case_when(neighbourhood_cleansed == "Atasehir" ~ "East",
+                                              neighbourhood_cleansed == "Bagcilar" ~ "West",
+                                              neighbourhood_cleansed == "Bakirkoy" ~ "West",
+                                              neighbourhood_cleansed == "Bayrampasa" ~ "West",
+                                              neighbourhood_cleansed == "Beykoz" ~ "North",
+                                              neighbourhood_cleansed == "Beyoglu" ~ "Center",
+                                              neighbourhood_cleansed == "Catalca" ~ "Far West",
+                                              neighbourhood_cleansed == "Esenler" ~ "West",
+                                              neighbourhood_cleansed == "Eyup" ~ "North",
+                                              neighbourhood_cleansed == "Gaziosmanpasa"~ "West",
+                                              neighbourhood_cleansed == "Kadikoy" ~ "East",
+                                              neighbourhood_cleansed == "Kartal" ~ "Far East",
+                                              neighbourhood_cleansed == "Maltepe" ~ "East",
+                                              neighbourhood_cleansed == "Sancaktepe" ~ "Far East",
+                                              neighbourhood_cleansed == "Sile" ~ "Far East",
+                                              neighbourhood_cleansed == "Sisli" ~ "Center",
+                                              neighbourhood_cleansed == "Sultangazi" ~ "Far West",
+                                              neighbourhood_cleansed == "Umraniye" ~ "East",
+                                              neighbourhood_cleansed == "Zeytinburnu" ~ "West",
+                                              neighbourhood_cleansed == "Arnavutkoy" ~ "North",
+                                              neighbourhood_cleansed == "Avcilar" ~ "Far West",
+                                              neighbourhood_cleansed == "Bahcelievler" ~ "West",
+                                              neighbourhood_cleansed == "Basaksehir" ~ "Far West",
+                                              neighbourhood_cleansed == "Besiktas" ~ "Center",
+                                              neighbourhood_cleansed == "Beylikduzu" ~ "Far West",
+                                              neighbourhood_cleansed == "Buyukcekmece" ~ "Far West",
+                                              neighbourhood_cleansed == "Cekmekoy" ~ "Far East",
+                                              neighbourhood_cleansed == "Esenyurt" ~ "Far West",
+                                              neighbourhood_cleansed == "Fatih" ~ "Center",
+                                              neighbourhood_cleansed == "Gungoren" ~ "West",
+                                              neighbourhood_cleansed == "Kagithane" ~ "North",
+                                              neighbourhood_cleansed == "Kucukcekmece" ~ "Far West",
+                                              neighbourhood_cleansed == "Pendik" ~ "Far East",
+                                              neighbourhood_cleansed == "Sariyer" ~ "North",
+                                              neighbourhood_cleansed == "Silivri" ~ "Far West",
+                                              neighbourhood_cleansed == "Sultanbeyli" ~ "Far East",
+                                              neighbourhood_cleansed == "Tuzla" ~ "Far East",
+                                              neighbourhood_cleansed == "Uskudar" ~ "Center")) 
+```
+
+Now, lets create a model that will show us whether the areas we just created are significant predictors of the price of the four night stay. 
+```{r}
+mymodelg <- lm(price_4_nights ~ neighbourhood_simplified, data = listings_cleaned_g)
+msummary(mymodelg)
+```
+
+We observe a p-value for our model of 4.63e-12. This means that the area to which a property belongs is indeed a significant predictor of the price of our four night stay. As we suspected, the properties in the center of the city are the most expensive for us to stay at for four nights.
+
+##What is the effect of the cancellation policy on the price of our four night stay?
+
+For this question, we will investigate wether the cancellation policy has an effect on the price of our four night stay. Using a similar strategy as for the previous questions, we first looked at the available variables.
+
+```{r}
+mymodeli <- lm(price_4_nights ~ cancellation_policy, data = listings_cleaned)
+msummary(mymodeli)
+#NOTE TO TEAM: I did not now what to adjust for so I just adjusted for nothing and in that case we find that the effect is significant. If you do know what to adjust for, just follow a method similar to what was done in all the previous cases.
+```
+*PUT CONCLUSION HERE ONCE WE FIGURE OUT WHICH VARIABLES TO CONTROL FOR*
+
+```
