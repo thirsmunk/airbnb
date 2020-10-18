@@ -46,10 +46,18 @@ library(tidyquant)
 library(infer)
 library(openintro)
 library(tidyquant)
+library(leaflet)
+library(broom)
+
 ```
 
 ```{r}
 listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2020-06-28/data/listings.csv.gz")
+
+listings <- listings %>%
+  mutate(price = parse_number(price))
+
+typeof(listings$price)
 
 ```
 
@@ -83,7 +91,209 @@ Other categorical values seem to be variables such as
 * zipcode (Istanbul has a finite amount of zipcodes)
 * neighbourhood (Istanbul has a finite amount of neighbourhoods)
 
-##Correlation between variables? 
+##Correlation between variables 
+Before finding the correlation we need to clean the dataset, please refer to the next chapter (Cleaning the Dataset) to see how we did this. 
+```{r}
+ggpairs(listings_cleaned)
+```
+#Cleaning the dataset 
+###Removing unneccesary variables
+As we saw in our glimpse of the dataset, there are a few variables that have no relevancy, or at least cause a lot of noise when trying to manipulate the data. Let's remove some of the less important columns:
+```{r}
+#Keep relevant variables
+listings_cleaned <- listings %>% 
+  select(!c(id, scrape_id, last_scraped, experiences_offered, neighborhood_overview, thumbnail_url, thumbnail_url, medium_url, picture_url, xl_picture_url, host_id, host_url, host_name, host_location, host_about, host_thumbnail_url, host_picture_url, country, country_code, calendar_updated, has_availability, calendar_last_scraped, jurisdiction_names))
+
+```
+###Casting price 
+Now let's turn the faulty character variables into the numerics they should be representing, starting with price 
+
+```{r}
+
+listings_cleaned <- listings_cleaned %>%
+  mutate(price = parse_number(price))
+
+typeof(listings_cleaned$price)
+
+```
+###Analyzing cleaning_fee 
+Now, let's turn our focus to the cleaning_fee variable 
+
+```{r}
+#First we change it into a numerical variable
+
+listings_cleaned <- listings_cleaned %>%
+  mutate(cleaning_fee = parse_number(cleaning_fee))
+
+skim(listings_cleaned$cleaning_fee)
+
+```
 
 
+We see that there's 13660 rows / ads missing a value for cleaning_fee. This most likely indicates that the ad **simply has no cleaning fee associated with renting the apartment**. 
+
+Let's turn these missing values into zeroes, which more accurately convey what the dataset is trying to tell us: 
+
+```{r}
+listings_cleaned <- listings_cleaned %>%
+  mutate(cleaning_fee = case_when(
+    is.na(cleaning_fee) ~ 0, #Fill in a 0 when there is a N/A value
+    TRUE ~ cleaning_fee
+  ))
+
+#Confirm there's no more missing values
+skim(listings_cleaned$cleaning_fee)
+#Confirmed!
+
+```
+###A deeper look into property_type 
+Let's turn our attention to property_type. First we count how many categories make up the variable's frequency 
+
+```{r}
+property_count <- listings_cleaned %>%
+  group_by(property_type) %>%
+  count() %>%
+  arrange(desc(n))
+
+property_count
+
+```
+We see that the top 4 most common property types are:
+
+1. Apartment
+2. Serviced apartment
+3. House
+4. Boutique hotel 
+
+These four make up...
+
+```{r}
+totalproperty_count <- listings_cleaned %>%
+  select(property_type) %>%
+  count() #Count total properties in the dataset
+
+property_count %>%
+  head(4) %>% #Choose the top 4 (apt, serviced apt, house, boutique)
+  arrange(desc(n)) %>%
+  ungroup() %>% #Prime for summarization  
+  summarise(sum4 = sum(n)) %>% #Get sum of the top 4 property type
+  mutate(proportion4 = sum4/totalproperty_count$n) #Calculate the proportion 
+
+```
+
+A whole **81.5%** as seen from the data manipulation above. Let's now create a simplified version of the property_type variable with 5 categories: 
+
+* Apartment
+* Serviced Apartment
+* House
+* Boutique Hotel 
+* Other 
+
+```{r}
+listings_cleaned <- listings_cleaned %>%
+  mutate(prop_type_simplified = case_when(
+    property_type %in% c(
+      "Apartment",
+      "Serviced apartment", 
+      "House",
+      "Boutique hotel") ~ property_type, #When the property type matches one of these four, keep the value  
+    TRUE ~ "Other" #Otherwise turn it into "Other" 
+  ))
+
+#Checking that our code is correct 
+listings_cleaned %>%
+  count(property_type, prop_type_simplified) %>%
+  arrange(desc(n))  
+
+#Checks out! 
+```
+###minimum_nights and filtering away non-travellers
+Let's now turn our attention to the minimum_nights variable 
+
+```{r}
+listings_cleaned %>% 
+  group_by(minimum_nights) %>%
+  count() %>%
+  arrange(desc(n))
+
+```
+The most common values (top 5) are: 
+
+1. 1 night 
+2. 2 nights 
+3. 3 nights 
+4. 7 nights 
+5. 5 nights 
+
+Plotting this as a ggplot would result in a very ugly diagram. We see that using AirBnB to stay for 1 night in Istanbul seems very popular representing more than 60% of the top 5 booking durations. 
+
+There could be several reasons why this is the case, but our hypothesis is that: 
+
+* Tourists jump from one AirBnB to the next as they explore various parts of this vibrant, cultural city e.g. living near the Blue Mosque one day, moving to Taksim Square the next before crossing the Bosphorous Strait into the Asian part of Istanbul. 
+
+We will now filter the minimum_nights so that only observations <= 4 are included in the dataset 
+
+```{r}
+listings_cleaned <- listings_cleaned %>%
+  filter(minimum_nights <= 4)
+
+```
+
+#Mapping 
+
+```{r}
+leaflet(data = filter(listings_cleaned, minimum_nights <= 4)) %>% 
+  addProviderTiles("OpenStreetMap.Mapnik") %>% 
+  addCircleMarkers(lng = ~longitude, 
+                   lat = ~latitude, 
+                   radius = 1, 
+                   fillColor = "blue", 
+                   fillOpacity = 0.4, 
+                   popup = ~listing_url,
+                   label = ~property_type)
+
+```
+
+#Regression Analysis
+
+```{r}
+listings_cleaned <- listings_cleaned %>%
+  mutate(extra_people = parse_number(extra_people))
+
+```
+
+```{r}
+max(listings_cleaned$price)
+total_cost_1 <- listings_cleaned %>%
+  filter(guests_included == 1) %>%
+  mutate(cost = (4 * price + 4 * extra_people + cleaning_fee))
+
+total_cost_2 <- listings_cleaned %>%
+  filter(guests_included >= 2) %>%
+  mutate(cost = (4 * price + cleaning_fee))
+
+listings_cleaned <- full_join(total_cost_1, total_cost_2, copy = FALSE)
+
+listings_cleaned <- listings_cleaned %>%
+  mutate(price_4_nights = cost)
+
+options("scipen"=100, "digits"=4)
+
+ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples")
+
+ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log10() +labs(title = "Price of staying at an Airbnb location for 4 nights", x = "Costs of 4-night stays", y = "No. of couples") 
+
+```
+
+```{r}
+model1 <- lm(price_4_nights ~ number_of_reviews + prop_type_simplified + review_scores_rating, data = listings_cleaned)
+
+tidy(model1)
+#According to model1, if the review score rating of an Airbnb location rises by 1, the price of a couple staying at that location for 4 nights would decrease by 10.77.
+
+#According to model1, an increase in the number of boutique hotels by 1 would raise the cost of a 4-night stay for a couple by 452.91. An equivalent increase for serviced apartments would raise the cost by 439.45. Houses are the only type of property which have a negative relationship with price, decreasing the cost by 21.03 for each additional house. All other property types such as apartments, townhouses, condominiums, aparthotels, bed and breakfasts, and lofts, have counts positively correlated with the cost of a 4-night stay for a couple.
+
+model2 <- lm(price_4_nights ~ number_of_reviews + room_type + prop_type_simplified + review_scores_rating, data = listings_cleaned)
+
+```
 
