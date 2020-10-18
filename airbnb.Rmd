@@ -101,10 +101,14 @@ Other categorical values seem to be variables such as
 * neighbourhood (Istanbul has a finite amount of neighbourhoods)
 
 ##Correlation between variables 
-Before finding the correlation we need to clean the dataset, please refer to the next chapter (Cleaning the Dataset) to see how we did this. 
+A few interesting variables were picked out of the dataset and evaluated using GGPairs:
 ```{r}
-ggpairs(listings_cleaned)
+
+ggpairs_data <- data.frame(listings$price, listings$bedrooms, listings$neighbourhood, listings$accommodates, listings$bathrooms, listings$square_feet)
+ggpairs(ggpairs_data)
 ```
+From this plot, we see that the data is scattered all over, presuming that we can have some trouble building a model that is able to predict the price for a 4 night stay in Istanbul. We see that bathrooms and bedrooms have near linear relationship, but that is pretty much the only **strong** correlation we see. Getting the predicted price might end up being tricky! 
+
 #Cleaning the dataset 
 ###Removing unneccesary variables
 As we saw in our glimpse of the dataset, there are a few variables that have no relevancy, or at least cause a lot of noise when trying to manipulate the data. Let's remove some of the less important columns:
