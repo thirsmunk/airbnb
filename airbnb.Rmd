@@ -70,8 +70,12 @@ typeof(listings$price)
 ##What does the data set contain? 
 
 ```{r}
-glimpse(listings)
-skim(listings)
+glimpse(listings) %>%
+  kable() %>%
+  kable_styling()
+skim(listings) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 From our glimpse into the data frame, we see that there are 106 columns with a total of 23,728 rows. However of these 106 columns, skim() shows us that only 39 are of the type "numeric". These include variables such as "bedrooms", "square feet", "latitude" and "longitude". Investigating further, we see that a lot of the columns don't add anything of value in terms of analysis (e.g. id, listing_url, scrape_id) and will therefore be dropped later on. 
@@ -130,7 +134,9 @@ Now, let's turn our focus to the cleaning_fee variable
 listings_cleaned <- listings_cleaned %>%
   mutate(cleaning_fee = parse_number(cleaning_fee))
 
-skim(listings_cleaned$cleaning_fee)
+skim(listings_cleaned$cleaning_fee) %>%
+  kable() %>%
+  kable_styling()
 
 ```
 
@@ -147,7 +153,9 @@ listings_cleaned <- listings_cleaned %>%
   ))
 
 #Confirm there's no more missing values
-skim(listings_cleaned$cleaning_fee)
+skim(listings_cleaned$cleaning_fee) %>%
+  kable() %>%
+  kable_styling()
 #Confirmed!
 
 ```
@@ -160,7 +168,9 @@ property_count <- listings_cleaned %>%
   count() %>%
   arrange(desc(n))
 
-property_count
+property_count %>%
+  kable() %>%
+  kable_styling()
 
 ```
 We see that the top 4 most common property types are:
@@ -208,7 +218,9 @@ listings_cleaned <- listings_cleaned %>%
 #Checking that our code is correct 
 listings_cleaned %>%
   count(property_type, prop_type_simplified) %>%
-  arrange(desc(n))  
+  arrange(desc(n)) %>%
+  kable() %>%
+  kable_styling()
 
 #Checks out! 
 ```
@@ -219,7 +231,9 @@ Let's now turn our attention to the minimum_nights variable
 listings_cleaned %>% 
   group_by(minimum_nights) %>%
   count() %>%
-  arrange(desc(n))
+  arrange(desc(n)) %>%
+  kable() %>%
+  kable_styling()
 
 ```
 The most common values (top 5) are: 
@@ -356,8 +370,12 @@ The way we would control for other (confounding) variables is to include them in
 
 Lets first look at which variables are available in our cleaned dataset:
 ```{r}
-glimpse(listings_cleaned)
-skim(listings_cleaned)
+glimpse(listings_cleaned) %>%
+  kable() %>%
+  kable_styling()
+skim(listings_cleaned) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 We assume that controlling for all other variables that characterise the host will allow us to single out the effect of being a superhost (or not being-). 
@@ -389,7 +407,9 @@ mutate(summary_available = ifelse(is.na(summary), 0, 1),
        transit_available = ifelse(is.na(transit), 0, 1),
        access_available = ifelse(is.na(access), 0, 1),
        interaction_available = ifelse(is.na(interaction), 0, 1))
-glimpse(listings_cleaned_g)
+glimpse(listings_cleaned_g) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 After glancing at our new variables, we see that there is a very strong correlation between them but this should not be a problem when we only want to test for the significance of the exact location and use these variables to control for other factors. 
@@ -461,7 +481,7 @@ For this question, we will investigate whether the cancellation policy has an ef
 ```{r}
 
 mymodeli <- lm(price_4_nights ~ cancellation_policy + bedrooms +  bathrooms + accommodates, data = listings_cleaned)
-summary(mymodeli)
+summary(mymodeli) 
 ```
 We see that cancellation_policy indeed is a strong explanatory variable for the price for a 4-night stay in Istanbul. We see that the cancellation policy of a listing negatively affects the price for four nights. If a listing has a moderate cancellation policy, the price for four nights is lowered by $307 
 
@@ -492,13 +512,17 @@ autoplot(mymodeli)
 ###Finding the Variance Inflation Factor 
 ####Model 1 
 ```{r}
-vif(model1)
+vif(model1) %>%
+  kable() %>%
+  kable_styling()
 ```
 Model 1 looks OK regarding VIF-scores. 
 
 ####Model 2 
 ```{r}
-vif(model2)
+vif(model2) %>%
+  kable() %>%
+  kable_styling()
 ```
 Model 2 looks OK regarding VIF-scores. 
 
@@ -507,31 +531,41 @@ Only one explanatory variable for these models hence no need to check for multic
 
 ####Model E
 ```{r}
-vif(mymodele)
+vif(mymodele) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 Again a rather low VIF-score across the board.
 
 ####Model F
 ```{r}
-vif(mymodelf)
+vif(mymodelf) %>%
+  kable() %>%
+  kable_styling()
 ```
 VIF throws an error here saying there's atleast one aliased coefficient in the model, meaning that they share a perfect multicollinearity. Let's find out which ones those are: 
 
 ```{r}
-alias(mymodelf) 
+alias(mymodelf) %>%
+  kable() %>%
+  kable_styling()
 ```
 It seems that number_of_verifications is our culprit, let's run the regression without it. 
 
 ```{r}
 modelf_adjusted <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified, data = listings_cleaned_f)
 
-vif(modelf_adjusted)
+vif(modelf_adjusted) %>%
+  kable() %>%
+  kable_styling()
 ```
 This seem to have solved the problem, now let's see if our regression tells us something novel. 
 
 ```{r}
-summary(modelf_adjusted)
+summary(modelf_adjusted) %>%
+  kable() %>%
+  kable_styling()
 ```
 We still find that there indeed is a price premium if a host is a super-host. Furthermore, we also still see that the total listings count have an impact on the price (premium). R-squared is still 0.0529, so removing the variable did not improve our model.
 
@@ -540,7 +574,9 @@ Fewer than 2 terms so no use in VIF
 
 ####Model I 
 ```{r}
-vif(mymodeli)
+vif(mymodeli) %>%
+  kable() %>%
+  kable_styling()
 ```
 No problems here either. 
 
@@ -562,17 +598,23 @@ huxreg(list(
         'Adj. R Squared' = 'adj.r.squared', 
         'Residual SE' = 'sigma'), 
 bold_signif = 0.05
-)
+) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 ###Our best model 
 Looking at our huxtable, we see that Model F seems to have the best explanatory power for staying at an AirBnB for four nights in Istanbul. However, it's important to note that **all of our models have a very poor prediction power...**
 
 ```{r}
-tidy(modelf_adjusted)
+tidy(modelf_adjusted) %>%
+  kable() %>%
+  kable_styling()
 ```
 ```{r}
-glance(modelf_adjusted)
+glance(modelf_adjusted) %>%
+  kable() %>%
+  kable_styling()
 ```
 That is: 
 
