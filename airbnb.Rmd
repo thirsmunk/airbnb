@@ -49,6 +49,10 @@ library(tidyquant)
 library(leaflet)
 library(broom)
 library(car)
+library(ggfortify)
+library(kableExtra)
+library(huxtable)
+library(flextable)
 
 ```
 
@@ -286,15 +290,28 @@ ggplot(listings_cleaned, aes(x=price_4_nights)) + geom_histogram() + scale_x_log
 
 ```
 
+For the regression model we would think of the following explanatory variables:
+
+* Neighborhood 
+* Bedrooms
+* Accomodates 
+* Square feet 
+* Property type 
+
+These are based on our own experience when we're looking for places to stay. We have found that the above variables usually play a big part in determining the price of the listing. 
+
 ```{r}
 model1 <- lm(price_4_nights ~ number_of_reviews + prop_type_simplified + review_scores_rating, data = listings_cleaned)
 
-tidy(model1)
+summary(model1)
 #According to model1, if the review score rating of an Airbnb location rises by 1, the price of a couple staying at that location for 4 nights would decrease by 10.77.
 
 #According to model1, an increase in the number of boutique hotels by 1 would raise the cost of a 4-night stay for a couple by 452.91. An equivalent increase for serviced apartments would raise the cost by 439.45. Houses are the only type of property which have a negative relationship with price, decreasing the cost by 21.03 for each additional house. All other property types such as apartments, townhouses, condominiums, aparthotels, bed and breakfasts, and lofts, have counts positively correlated with the cost of a 4-night stay for a couple.
 
 model2 <- lm(price_4_nights ~ number_of_reviews + room_type + prop_type_simplified + review_scores_rating, data = listings_cleaned)
+summary(model2)
+
+#From this new regression model, we see an increase in the adjusted R^2 value meaning that room_type indeed seems to be a predictor of the cost for 4 nights. This is also seen by the t-values of the various room types - everyone of them is significant.   
 
 ```
 
@@ -325,7 +342,7 @@ The t value of 12.6 tells us that the number of beds is a significant predictor 
 mymodeld <- lm(price_4_nights ~ accommodates, data = listings_cleaned)
 msummary(mymodeld)
 ```
-The t value of 19.79 tells us that the number of beds is a significant predictor of the price for four nights. Our model estimates every person an apartment can accommodate adds about 481.7$ to the price of a four nights stay.
+The t value of 19.79 tells us that the amount of people an AirBnB can accommodate is a significant predictor of the price for four nights. Our model estimates every person an apartment can accommodate adds about 481.7$ to the price of a four nights stay.
 ```{r}
 mymodele <- lm(price_4_nights ~ bathrooms + bedrooms + beds + accommodates, data = listings_cleaned)
 msummary(mymodele)
@@ -337,7 +354,7 @@ When running our model for all the variables at the same time. At first sight, w
 Now, lets investigate whether superhosts command a pricing premium after controlling for other variables. 
 The way we would control for other (confounding) variables is to include them in our regression model and see if the variable we want to investigate is still a significant predictor. The problem is we will never know if we have taken care of all the variables that we need to (which is called residual confounding) but we try our best to get an answer that is as close to correct as possible. 
 
-Lets first look at which variables are avilable in our cleaned dataset:
+Lets first look at which variables are available in our cleaned dataset:
 ```{r}
 glimpse(listings_cleaned)
 skim(listings_cleaned)
@@ -355,7 +372,6 @@ Now, we use the following linear model:
 ```{r}
 mymodelf <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified + number_of_verifications, data = listings_cleaned_f)
 msummary(mymodelf)
-#NOTE TO TEAM: some of there variables are suspected to be correlated but running ggpairs() offers a result that is very hard to interpret. (car::vif does not seem to work)
 ```
 As you can see, we did not take the response time, response rate or neighbourhood of the host into account since these variables are only known for a very limited amount of hosts. 
 We find that the superhosts command a price premium as this is a significant predictor even after controlling for the previously mentionned variables. We observe that in the fact that it has a t value of 2.2 and a Pr(>|t|) of 0.0277. Do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.0529.
@@ -377,9 +393,6 @@ glimpse(listings_cleaned_g)
 ```
 
 After glancing at our new variables, we see that there is a very strong correlation between them but this should not be a problem when we only want to test for the significance of the exact location and use these variables to control for other factors. 
-```{r}
-#NOTE TO TEAM: If the above statement is false, please correct me
-```
 
 ```{r}
 mymodelg <- lm(price_4_nights ~ is_location_exact + summary_available + description_available + notes_available + transit_available + access_available + interaction_available, data=listings_cleaned_g)
@@ -443,13 +456,190 @@ We observe a p-value for our model of 4.63e-12. This means that the area to whic
 
 ##What is the effect of the cancellation policy on the price of our four night stay?
 
-For this question, we will investigate wether the cancellation policy has an effect on the price of our four night stay. Using a similar strategy as for the previous questions, we first looked at the available variables.
+For this question, we will investigate whether the cancellation policy has an effect on the price of our four night stay. Using a similar strategy as for the previous questions, we first looked at the available variables.
 
 ```{r}
-mymodeli <- lm(price_4_nights ~ cancellation_policy, data = listings_cleaned)
-msummary(mymodeli)
-#NOTE TO TEAM: I did not now what to adjust for so I just adjusted for nothing and in that case we find that the effect is significant. If you do know what to adjust for, just follow a method similar to what was done in all the previous cases.
+
+mymodeli <- lm(price_4_nights ~ cancellation_policy + bedrooms +  bathrooms + accommodates, data = listings_cleaned)
+summary(mymodeli)
 ```
-*PUT CONCLUSION HERE ONCE WE FIGURE OUT WHICH VARIABLES TO CONTROL FOR*
+We see that cancellation_policy indeed is a strong explanatory variable for the price for a 4-night stay in Istanbul. We see that the cancellation policy of a listing negatively affects the price for four nights. If a listing has a moderate cancellation policy, the price for four nights is lowered by $307 
+
+If a listing has a strict policy with a 14 days grace period, the listing price is lowered by $342 
+
+##Diagnostics, collinearity, summary tables 
+###Checking residuals of all the models 
+```{r}
+autoplot(model1)
+autoplot(model2)
+autoplot(mymodela)
+autoplot(mymodelb)
+autoplot(mymodelc)
+autoplot(mymodeld)
+autoplot(mymodele)
+autoplot(mymodelf)
+autoplot(mymodelg)
+autoplot(mymodeli)
+
+
+
+
+
+
 
 ```
+
+###Finding the Variance Inflation Factor 
+####Model 1 
+```{r}
+vif(model1)
+```
+Model 1 looks OK regarding VIF-scores. 
+
+####Model 2 
+```{r}
+vif(model2)
+```
+Model 2 looks OK regarding VIF-scores. 
+
+####Model A - D
+Only one explanatory variable for these models hence no need to check for multicollinearity. 
+
+####Model E
+```{r}
+vif(mymodele)
+```
+
+Again a rather low VIF-score across the board.
+
+####Model F
+```{r}
+vif(mymodelf)
+```
+VIF throws an error here saying there's atleast one aliased coefficient in the model, meaning that they share a perfect multicollinearity. Let's find out which ones those are: 
+
+```{r}
+alias(mymodelf) 
+```
+It seems that number_of_verifications is our culprit, let's run the regression without it. 
+
+```{r}
+modelf_adjusted <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified, data = listings_cleaned_f)
+
+vif(modelf_adjusted)
+```
+This seem to have solved the problem, now let's see if our regression tells us something novel. 
+
+```{r}
+summary(modelf_adjusted)
+```
+We still find that there indeed is a price premium if a host is a super-host. Furthermore, we also still see that the total listings count have an impact on the price (premium). R-squared is still 0.0529, so removing the variable did not improve our model.
+
+####Model G
+Fewer than 2 terms so no use in VIF 
+
+####Model I 
+```{r}
+vif(mymodeli)
+```
+No problems here either. 
+
+###Summary Tables (huxtable)
+```{r}
+huxreg(list(
+  "Model 1" = model1, 
+  "Model 2" = model2, 
+  "Model A" = mymodela, 
+  "Model B" = mymodelb, 
+  "Model C" = mymodelc, 
+  "Model D" = mymodeld, 
+  "Model E" = mymodele, 
+  "Model F" = modelf_adjusted, 
+  "Model G" = mymodelg, 
+  "Model I" = mymodeli), statistics = c
+       ('#observations' = 'nobs', 
+        'R squared' = 'r.squared', 
+        'Adj. R Squared' = 'adj.r.squared', 
+        'Residual SE' = 'sigma'), 
+bold_signif = 0.05
+)
+```
+
+###Our best model 
+Looking at our huxtable, we see that Model F seems to have the best explanatory power for staying at an AirBnB for four nights in Istanbul. However, it's important to note that **all of our models have a very poor prediction power...**
+
+```{r}
+tidy(modelf_adjusted)
+```
+```{r}
+glance(modelf_adjusted)
+```
+That is: 
+
+```{r}
+prediction_model <- 700.189+95.675*(host_is_superhostTRUE)+1.895*(host_total_listings_count)-274.105*(host_has_profile_picTRUE)-48.655*(host_identity_verifiedTRUE)
+```
+Following the filter criteria set forth in the problem, we predict the cost: 
+
+```{r}
+final_prediction <- listings_cleaned %>%
+filter(prop_type_simplified == "Apartment", room_type == "Private room", number_of_reviews >= 10, review_scores_rating > 90)  %>%
+  group_by(listing_url) %>%
+  mutate(host_is_superhost = case_when(host_is_superhost == TRUE ~ 95.675,
+                                       host_is_superhost == FALSE ~ 0)) %>%
+  mutate(host_total_listings_count = case_when(host_total_listings_count > 0 ~ count(host_total_listings_count) * 1.84,
+                                               host_total_listings_count == 0 ~ 0)) %>%
+  mutate(host_has_profile_pic = case_when(host_has_profile_pic == TRUE ~ -478.568,
+                                          host_has_profile_pic == FALSE ~ 0)) %>%
+  mutate(host_identity_verified = case_when(host_identity_verified == TRUE ~ -48.655,
+                                            host_identity_verified == FALSE ~ 0)) %>%
+  summarise(predicted_cost = sum(700.189 + host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified))
+```
+
+We see that the total cost of staying at an AirBnB in Istanbul for four days fitting the criteria set forth above varies from: 
+* Lowest price: 377.4 (found using slice())
+* Highest price: 523.7
+
+From our regression model we know that there is a standard error for every explanatory variable. Let's find the 95% confidence interval for the above prices: 
+
+```{r}
+LOWER_final_prediction <- listings_cleaned %>%
+filter(prop_type_simplified == "Apartment", room_type == "Private room", number_of_reviews >= 10, review_scores_rating > 90)  %>%
+  group_by(listing_url) %>%
+  mutate(host_is_superhost = case_when(host_is_superhost == TRUE ~ 52.215, #Minus the standard error for every variable 
+                                       host_is_superhost == FALSE ~ 0)) %>%
+  mutate(host_total_listings_count = case_when(host_total_listings_count > 0 ~ count(host_total_listings_count) * 1.895,
+                                               host_total_listings_count == 0 ~ 0)) %>%
+  mutate(host_has_profile_pic = case_when(host_has_profile_pic == TRUE ~ -274.105,
+                                          host_has_profile_pic == FALSE ~ 0)) %>%
+  mutate(host_identity_verified = case_when(host_identity_verified == TRUE ~ -85.278,
+                                            host_identity_verified == FALSE ~ 0)) %>%
+  summarise(LOWER_predicted_cost = sum(496.227 + host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified)) 
+```
+
+```{r}
+HIGHER_final_prediction <- listings_cleaned %>%
+filter(prop_type_simplified == "Apartment", room_type == "Private room", number_of_reviews >= 10, review_scores_rating > 90)  %>%
+  group_by(listing_url) %>%
+  mutate(host_is_superhost = case_when(host_is_superhost == TRUE ~ 139.135,
+                                       host_is_superhost == FALSE ~ 0)) %>%
+  mutate(host_total_listings_count = case_when(host_total_listings_count > 0 ~ count(host_total_listings_count) * 1.95,
+                                               host_total_listings_count == 0 ~ 0)) %>%
+  mutate(host_has_profile_pic = case_when(host_has_profile_pic == TRUE ~ -69.642,
+                                          host_has_profile_pic == FALSE ~ 0)) %>%
+  mutate(host_identity_verified = case_when(host_identity_verified == TRUE ~ -12.032,
+                                            host_identity_verified == FALSE ~ 0)) %>%
+  summarise(predicted_cost = sum(904.151 + host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified))
+```
+To conclude, we therefore see that:
+
+####Predicted Price (Point)
+* Lowest price: 377.4 (found using slice())
+* Highest price: 523.7
+
+####Intervals 
+For our minimum and maximum price we see that the confidence interval set gives us: 
+* minimum price with 95% confidence = 136.8 to 822.5
+* maximum price with 95% confidence = 276.2 to 975.6
+
+The wide price range tells us that our model is poor at predicting the price. However, this model F had the highest R-squared value out of the possible models. 
