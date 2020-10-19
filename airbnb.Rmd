@@ -111,7 +111,7 @@ From this plot, we see that the data is scattered all over, presuming that we ca
 
 #Cleaning the dataset 
 ###Removing unneccesary variables
-As we saw in our glimpse of the dataset, there are a few variables that have no relevancy, or at least cause a lot of noise when trying to manipulate the data. Let's remove some of the less important columns:
+As we saw in our glimpse of the data set, there are a few variables that have no relevancy, or at least cause a lot of noise when trying to manipulate the data. Let's remove some of the less important columns:
 ```{r}
 #Keep relevant variables
 listings_cleaned <- listings %>% 
