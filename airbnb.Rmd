@@ -58,24 +58,14 @@ library(flextable)
 
 ```{r}
 listings <- vroom("http://data.insideairbnb.com/turkey/marmara/istanbul/2020-06-28/data/listings.csv.gz")
-
-listings <- listings %>%
-  mutate(price = parse_number(price))
-
-typeof(listings$price)
-
 ```
 
-#Exploratory Data Analysis 
-##What does the data set contain? 
+# Exploratory Data Analysis 
+## What does the data set contain? 
 
 ```{r}
-glimpse(listings) %>%
-  kable() %>%
-  kable_styling()
-skim(listings) %>%
-  kable() %>%
-  kable_styling()
+glimpse(listings)
+skim(listings) 
 
 ```
 
@@ -83,7 +73,7 @@ From our glimpse into the data frame, we see that there are 106 columns with a t
 
 However, we also see that some of the columns you'd expect to be numeric (e.g. "price", "cleaning fee") are actually served as strings - we will therefore need to cast these for use in our analysis later on. 
 
-##Categorical variables 
+## Categorical variables 
 Checking for factor variables in our dataset, we first dive into the review section of hosts - surely AirBnB must have implemented a review system of 1-10? 
 
 ```{r}
@@ -95,6 +85,7 @@ listings %>%
   ggplot(., aes(x = review_scores_value, y = n)) + geom_col()
 
 ```
+
 Manipulating our dataframe to show the range of review scores, we see that AirBnB indeed has a 1-10 rating system, and judging from the scores given it seems that Istanbul has some great hosts! The reason why we don't see any 1 scores could perhaps be that AirBnB removes hosts who receive such a score very quickly. 
 
 Other categorical values seem to be variables such as 
@@ -102,18 +93,21 @@ Other categorical values seem to be variables such as
 * zipcode (Istanbul has a finite amount of zipcodes)
 * neighbourhood (Istanbul has a finite amount of neighbourhoods)
 
-##Correlation between variables 
+## Correlation between variables 
 A few interesting variables were picked out of the dataset and evaluated using GGPairs:
+
 ```{r}
 
 ggpairs_data <- data.frame(listings$price, listings$bedrooms, listings$neighbourhood, listings$accommodates, listings$bathrooms, listings$square_feet)
-ggpairs(ggpairs_data)
+ggpairs(ggpairs_data, cardinality_threshold = NULL)
 
 ```
+
 From this plot, we see that the data is scattered all over, presuming that we can have some trouble building a model that is able to predict the price for a 4 night stay in Istanbul. We see that bathrooms and bedrooms have near linear relationship, but that is pretty much the only **strong** correlation we see. Getting the predicted price might end up being tricky! 
 
-#Cleaning the dataset 
-###Removing unneccesary variables
+# Cleaning the dataset 
+## Removing unneccesary variables
+
 As we saw in our glimpse of the data set, there are a few variables that have no relevancy, or at least cause a lot of noise when trying to manipulate the data. Let's remove some of the less important columns:
 ```{r}
 #Keep relevant variables
@@ -121,7 +115,8 @@ listings_cleaned <- listings %>%
   select(!c(id, scrape_id, last_scraped, experiences_offered, neighborhood_overview, thumbnail_url, thumbnail_url, medium_url, picture_url, xl_picture_url, host_id, host_url, host_name, host_location, host_about, host_thumbnail_url, host_picture_url, country, country_code, calendar_updated, has_availability, calendar_last_scraped, jurisdiction_names))
 
 ```
-###Casting price 
+
+## Casting price 
 Now let's turn the faulty character variables into the numerics they should be representing, starting with price 
 
 ```{r}
@@ -132,7 +127,8 @@ listings_cleaned <- listings_cleaned %>%
 typeof(listings_cleaned$price)
 
 ```
-###Analyzing cleaning_fee 
+
+## Analyzing cleaning_fee 
 Now, let's turn our focus to the cleaning_fee variable 
 
 ```{r}
@@ -146,7 +142,6 @@ skim(listings_cleaned$cleaning_fee) %>%
   kable_styling()
 
 ```
-
 
 We see that there's 13660 rows / ads missing a value for cleaning_fee. This most likely indicates that the ad **simply has no cleaning fee associated with renting the apartment**. 
 
@@ -166,7 +161,8 @@ skim(listings_cleaned$cleaning_fee) %>%
 #Confirmed!
 
 ```
-###A deeper look into property_type 
+
+## A deeper look into property_type 
 Let's turn our attention to property_type. First we count how many categories make up the variable's frequency 
 
 ```{r}
@@ -180,6 +176,7 @@ property_count %>%
   kable_styling()
 
 ```
+
 We see that the top 4 most common property types are:
 
 1. Apartment
@@ -231,7 +228,8 @@ listings_cleaned %>%
 
 #Checks out! 
 ```
-###minimum_nights and filtering away non-travellers
+
+## minimum_nights and filtering away non-travellers
 Let's now turn our attention to the minimum_nights variable 
 
 ```{r}
@@ -243,6 +241,7 @@ listings_cleaned %>%
   kable_styling()
 
 ```
+
 The most common values (top 5) are: 
 
 1. 1 night 
@@ -265,7 +264,7 @@ listings_cleaned <- listings_cleaned %>%
 
 ```
 
-#Mapping 
+# Mapping 
 
 ```{r}
 leaflet(data = filter(listings_cleaned, minimum_nights <= 4)) %>% 
@@ -280,7 +279,7 @@ leaflet(data = filter(listings_cleaned, minimum_nights <= 4)) %>%
 
 ```
 
-#Regression Analysis
+# Regression Analysis
 
 ```{r}
 listings_cleaned <- listings_cleaned %>%
@@ -336,75 +335,84 @@ summary(model2)
 
 ```
 
-
-#Further variables/question to explore
+# Further variables/question to explore
  
 In this part, we will further investigate the relationship between several variables to extend our analysis. First, an overview of the relationship we investigate will be given. Then, the relationship will be investigated, and finally, a written conclusion will be presented.
 
-##Can we use the number of bathrooms, bedrooms, beds and the size of the house to predict the price of a four night stay?
+## Can we use the number of bathrooms, bedrooms, beds and the size of the house to predict the price of a four night stay?
 
 To start, we will investigate whether the number of bathrooms, bedrooms, beds or the size of the house are significant predictors of the price for a four night stay as it was calculated in the previous chapter. 
+
 ```{r}
 mymodela <- lm(price_4_nights ~ bathrooms, data = listings_cleaned)
 msummary(mymodela)
 ```
+
 The t value of 10.9 tells us that the number of bathrooms is a significant predictor of the price for four nights. Our model estimates every bathroom adds about 556.1$ to the price of a four nights stay.
+
 ```{r}
 mymodelb <- lm(price_4_nights ~ bedrooms, data = listings_cleaned)
 msummary(mymodelb)
 ```
+
 The t value of 10.0 tells us that the number of bedrooms is a significant predictor of the price for four nights. Our model estimates every bedroom adds about 371.4$ to the price of a four nights stay.
+
 ```{r}
 mymodelc <- lm(price_4_nights ~ beds, data = listings_cleaned)
 msummary(mymodelc)
 ```
+
 The t value of 12.6 tells us that the number of beds is a significant predictor of the price for four nights. Our model estimates every bed adds about 326.7$ to the price of a four nights stay.
+
 ```{r}
 mymodeld <- lm(price_4_nights ~ accommodates, data = listings_cleaned)
 msummary(mymodeld)
 ```
+
 The t value of 19.79 tells us that the amount of people an AirBnB can accommodate is a significant predictor of the price for four nights. Our model estimates every person an apartment can accommodate adds about 481.7$ to the price of a four nights stay.
+
 ```{r}
 mymodele <- lm(price_4_nights ~ bathrooms + bedrooms + beds + accommodates, data = listings_cleaned)
 msummary(mymodele)
 ```
+
 When running our model for all the variables at the same time. At first sight, we find that the amount of beds is not a significant predictor anymore and that extra bedrooms actually decrease the price of the four night stay. It is important to note that our multi-collinearity test works best when there is zero correlation between the explanatory variables. No test is needed to see that this is not the case in our example, the amount of people an apartment can accommodate and the number of bedrooms is obviously correlated to the number of beds and so is the amount of bathrooms. It is for this reason that we cannot draw conclusions from the above linear model without making appropriate adaptations. 
 
-##Do superhosts command a pricing premium?
-
+## Do superhosts command a pricing premium?
 Now, lets investigate whether superhosts command a pricing premium after controlling for other variables. 
 The way we would control for other (confounding) variables is to include them in our regression model and see if the variable we want to investigate is still a significant predictor. The problem is we will never know if we have taken care of all the variables that we need to (which is called residual confounding) but we try our best to get an answer that is as close to correct as possible. 
 
 Lets first look at which variables are available in our cleaned dataset:
+
 ```{r}
-glimpse(listings_cleaned) %>%
-  kable() %>%
-  kable_styling()
-skim(listings_cleaned) %>%
-  kable() %>%
-  kable_styling()
+glimpse(listings_cleaned) 
+skim(listings_cleaned) 
 ```
 
 We assume that controlling for all other variables that characterise the host will allow us to single out the effect of being a superhost (or not being-). 
 
 First, lets create a new variable so that we can adjust for the number of host verifications:
+
 ```{r}
 listings_cleaned_f <- listings_cleaned %>%
   mutate(number_of_verifications = length(host_verifications))
 ```
 
 Now, we use the following linear model:
+
 ```{r}
 mymodelf <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified + number_of_verifications, data = listings_cleaned_f)
 msummary(mymodelf)
 ```
+
 As you can see, we did not take the response time, response rate or neighbourhood of the host into account since these variables are only known for a very limited amount of hosts. 
 We find that the superhosts command a price premium as this is a significant predictor even after controlling for the previously mentionned variables. We observe that in the fact that it has a t value of 2.2 and a Pr(>|t|) of 0.0277. Do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.0529.
 
-##Can the fact that a listing has an exact location be used to predict the price of a four night stay?
+## Can the fact that a listing has an exact location be used to predict the price of a four night stay?
 
 Lets investigate whether the fact that a property has or has not listed its exact location is a significant predictor of the price of our four night stay. Using a similar strategy as above, we first looked at the available variables. We suspect we will have to control for the effect of a listing being complete in its information in general so that we will find the effect of specificly having the exact location available.
-In the following code, we create a variable that is 0 is no summary is available and 1 if a summary is available. We do the same thing for space, description, notes, transit, access and interaction.  
+In the following code, we create a variable that is 0 is no summary is available and 1 if a summary is available. We do the same thing for space, description, notes, transit, access and interaction.
+
 ```{r}
 listings_cleaned_g <- listings_cleaned %>%
 mutate(summary_available = ifelse(is.na(summary), 0, 1), 
@@ -414,9 +422,7 @@ mutate(summary_available = ifelse(is.na(summary), 0, 1),
        transit_available = ifelse(is.na(transit), 0, 1),
        access_available = ifelse(is.na(access), 0, 1),
        interaction_available = ifelse(is.na(interaction), 0, 1))
-glimpse(listings_cleaned_g) %>%
-  kable() %>%
-  kable_styling()
+glimpse(listings_cleaned_g) 
 ```
 
 After glancing at our new variables, we see that there is a very strong correlation between them but this should not be a problem when we only want to test for the significance of the exact location and use these variables to control for other factors. 
@@ -428,9 +434,10 @@ msummary(mymodelg)
 
 We conclude that the availabliity of an exact locatyion of the listing is a significant predictor for the price of our 4 night stay since the t value is 4.19. Again, do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.00248.
 
-##Is location a predictor of the price of our four night stay? 
+## Is location a predictor of the price of our four night stay? 
 
 For this question, we will start by grouping the neighbourhoods to divide them into 6 geographical areas: Center (C), North (N), East (E), Far East (FE), West (W), Far West (FW).
+
 ```{r}
 listings_cleaned_g <- listings_cleaned %>%
   mutate(neighbourhood_simplified = case_when(neighbourhood_cleansed == "Atasehir" ~ "East",
@@ -482,7 +489,7 @@ msummary(mymodelg)
 
 We observe a p-value for our model of 4.63e-12. This means that the area to which a property belongs is indeed a significant predictor of the price of our four night stay. As we suspected, the properties in the center of the city are the most expensive for us to stay at for four nights.
 
-##What is the effect of the cancellation policy on the price of our four night stay?
+## What is the effect of the cancellation policy on the price of our four night stay?
 
 For this question, we will investigate whether the cancellation policy has an effect on the price of our four night stay. Using a similar strategy as for the previous questions, we first looked at the available variables.
 
@@ -491,12 +498,14 @@ For this question, we will investigate whether the cancellation policy has an ef
 mymodeli <- lm(price_4_nights ~ cancellation_policy + bedrooms +  bathrooms + accommodates, data = listings_cleaned)
 summary(mymodeli) 
 ```
+
 We see that cancellation_policy indeed is a strong explanatory variable for the price for a 4-night stay in Istanbul. We see that the cancellation policy of a listing negatively affects the price for four nights. If a listing has a moderate cancellation policy, the price for four nights is lowered by $307 
 
 If a listing has a strict policy with a 14 days grace period, the listing price is lowered by $342 
 
-##Diagnostics, collinearity, summary tables 
-###Checking residuals of all the models 
+# Diagnostics, collinearity, summary tables 
+## Checking residuals of all the models 
+
 ```{r}
 autoplot(model1)
 autoplot(model2)
@@ -508,36 +517,31 @@ autoplot(mymodele)
 autoplot(mymodelf)
 autoplot(mymodelg)
 autoplot(mymodeli)
-
-
-
-
-
-
-
 ```
 
-###Finding the Variance Inflation Factor 
-####Model 1 
+## Finding the Variance Inflation Factor 
+### Model 1 
 ```{r}
 vif(model1) %>%
   kable() %>%
   kable_styling()
 ```
+
 Model 1 looks OK regarding VIF-scores. 
 
-####Model 2 
+### Model 2 
 ```{r}
 vif(model2) %>%
   kable() %>%
   kable_styling()
 ```
+
 Model 2 looks OK regarding VIF-scores. 
 
-####Model A - D
+### Model A - D
 Only one explanatory variable for these models hence no need to check for multicollinearity. 
 
-####Model E
+### Model E
 ```{r}
 vif(mymodele) %>%
   kable() %>%
@@ -546,18 +550,17 @@ vif(mymodele) %>%
 
 Again a rather low VIF-score across the board.
 
-####Model F
+### Model F
 ```{r}
-vif(mymodelf) %>%
-  kable() %>%
-  kable_styling()
+#vif(mymodelf) %>%
+#  kable() %>%
+#  kable_styling()
 ```
+
 VIF throws an error here saying there's atleast one aliased coefficient in the model, meaning that they share a perfect multicollinearity. Let's find out which ones those are: 
 
 ```{r}
-alias(mymodelf) %>%
-  kable() %>%
-  kable_styling()
+alias(mymodelf) 
 ```
 It seems that number_of_verifications is our culprit, let's run the regression without it. 
 
@@ -568,27 +571,28 @@ vif(modelf_adjusted) %>%
   kable() %>%
   kable_styling()
 ```
+
 This seem to have solved the problem, now let's see if our regression tells us something novel. 
 
 ```{r}
-summary(modelf_adjusted) %>%
-  kable() %>%
-  kable_styling()
+summary(modelf_adjusted) 
 ```
+
 We still find that there indeed is a price premium if a host is a super-host. Furthermore, we also still see that the total listings count have an impact on the price (premium). R-squared is still 0.0529, so removing the variable did not improve our model.
 
-####Model G
+### Model G
 Fewer than 2 terms so no use in VIF 
 
-####Model I 
+### Model I 
 ```{r}
 vif(mymodeli) %>%
   kable() %>%
   kable_styling()
 ```
+
 No problems here either. 
 
-###Summary Tables (huxtable)
+## Summary Tables (huxtable)
 ```{r}
 huxreg(list(
   "Model 1" = model1, 
@@ -611,7 +615,7 @@ bold_signif = 0.05
   kable_styling()
 ```
 
-###Our best model 
+## Our best model 
 Looking at our huxtable, we see that Model F seems to have the best explanatory power for staying at an AirBnB for four nights in Istanbul. However, it's important to note that **all of our models have a very poor prediction power...**
 
 ```{r}
@@ -624,11 +628,11 @@ glance(modelf_adjusted) %>%
   kable() %>%
   kable_styling()
 ```
+
 That is: 
 
-```{r}
-prediction_model <- 700.189+95.675*(host_is_superhostTRUE)+1.895*(host_total_listings_count)-274.105*(host_has_profile_picTRUE)-48.655*(host_identity_verifiedTRUE)
-```
+Model: 700.189+95.675*(host_is_superhostTRUE)+1.895*(host_total_listings_count)-274.105*(host_has_profile_picTRUE)-48.655*(host_identity_verifiedTRUE)
+
 Following the filter criteria set forth in the problem, we predict the cost: 
 
 ```{r}
@@ -681,13 +685,14 @@ filter(prop_type_simplified == "Apartment", room_type == "Private room", number_
                                             host_identity_verified == FALSE ~ 0)) %>%
   summarise(predicted_cost = sum(904.151 + host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified))
 ```
+
 To conclude, we therefore see that:
 
-####Predicted Price (Point)
+### Predicted Price (Point)
 * Lowest price: 377.4 (found using slice())
 * Highest price: 523.7
 
-####Intervals 
+### Intervals 
 For our minimum and maximum price we see that the confidence interval set gives us: 
 * minimum price with 95% confidence = 136.8 to 822.5
 * maximum price with 95% confidence = 276.2 to 975.6
