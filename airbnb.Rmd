@@ -401,12 +401,12 @@ listings_cleaned_f <- listings_cleaned %>%
 Now, we use the following linear model:
 
 ```{r}
-mymodelf <- lm(price ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified + number_of_verifications, data = listings_cleaned_f)
+mymodelf <- lm(price_4_nights ~ host_is_superhost + host_total_listings_count + host_has_profile_pic + host_identity_verified + number_of_verifications, data = listings_cleaned_f)
 msummary(mymodelf)
 ```
 
 As you can see, we did not take the response time, response rate or neighbourhood of the host into account since these variables are only known for a very limited amount of hosts. 
-We find that the superhosts command a price premium as this is a significant predictor even after controlling for the previously mentionned variables. We observe that in the fact that it has a t value of 2.2 and a Pr(>|t|) of 0.0277. Do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.0529.
+We find that the superhosts command a price premium as this is a significant predictor of the price of our four night stay even after controlling for the previously mentionned variables. We observe that in the fact that it has a t value of 2.42 and a Pr(>|t|) of 0.01561. Do note that this model only explains a very small part of the price as we see that Adjusted R-squared is only 0.0522.
 
 ## Can the fact that a listing has an exact location be used to predict the price of a four night stay?
 
