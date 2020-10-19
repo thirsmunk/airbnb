@@ -76,6 +76,7 @@ glimpse(listings) %>%
 skim(listings) %>%
   kable() %>%
   kable_styling()
+
 ```
 
 From our glimpse into the data frame, we see that there are 106 columns with a total of 23,728 rows. However of these 106 columns, skim() shows us that only 39 are of the type "numeric". These include variables such as "bedrooms", "square feet", "latitude" and "longitude". Investigating further, we see that a lot of the columns don't add anything of value in terms of analysis (e.g. id, listing_url, scrape_id) and will therefore be dropped later on. 
@@ -92,6 +93,7 @@ listings %>%
   group_by(review_scores_value) %>%
   count() %>% 
   ggplot(., aes(x = review_scores_value, y = n)) + geom_col()
+
 ```
 Manipulating our dataframe to show the range of review scores, we see that AirBnB indeed has a 1-10 rating system, and judging from the scores given it seems that Istanbul has some great hosts! The reason why we don't see any 1 scores could perhaps be that AirBnB removes hosts who receive such a score very quickly. 
 
@@ -106,6 +108,7 @@ A few interesting variables were picked out of the dataset and evaluated using G
 
 ggpairs_data <- data.frame(listings$price, listings$bedrooms, listings$neighbourhood, listings$accommodates, listings$bathrooms, listings$square_feet)
 ggpairs(ggpairs_data)
+
 ```
 From this plot, we see that the data is scattered all over, presuming that we can have some trouble building a model that is able to predict the price for a 4 night stay in Istanbul. We see that bathrooms and bedrooms have near linear relationship, but that is pretty much the only **strong** correlation we see. Getting the predicted price might end up being tricky! 
 
@@ -470,7 +473,8 @@ listings_cleaned_g <- listings_cleaned %>%
                                               neighbourhood_cleansed == "Uskudar" ~ "Center")) 
 ```
 
-Now, lets create a model that will show us whether the areas we just created are significant predictors of the price of the four night stay. 
+Now, lets create a model that will show us whether the areas we just created are significant predictors of the price of the four night stay. In this model, the estimates will be calculated as the difference between the price in the center and the price in that region. e.g. if the estimate for West would be -500 it would mean the price is estimated to be 500$ lower in the West compared to the center of the city.
+
 ```{r}
 mymodelg <- lm(price_4_nights ~ neighbourhood_simplified, data = listings_cleaned_g)
 msummary(mymodelg)
